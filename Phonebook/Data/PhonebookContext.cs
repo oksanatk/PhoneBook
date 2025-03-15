@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using PhoneBook.oksanatk.Models;
+using PhoneBook.Models;
 using System.Configuration;
 
-namespace PhoneBook.oksanatk.Data;
+namespace PhoneBook.Data;
 
 class PhonebookContext : DbContext
 {

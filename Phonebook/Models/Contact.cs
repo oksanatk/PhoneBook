@@ -1,4 +1,4 @@
-﻿namespace PhoneBook.oksanatk.Models;
+﻿namespace PhoneBook.Models;
 
 class Contact
 {
