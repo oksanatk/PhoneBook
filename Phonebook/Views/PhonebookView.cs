@@ -39,6 +39,7 @@ class PhonebookView
                     await DisplayAllContacts();
                     break;
                 case "Create Contact":
+                    await CreateContactInputs();
                     break;
                 case "Edit Contacts":
                     break;
@@ -74,7 +75,19 @@ class PhonebookView
                                     .Title("Choose the contact to view.")
                                     .AddChoices(menuSelection)
                                     );
-        } while (contactChoice != "Go Back");
+        } while (contactChoice != "Go Back"); 
+    }    
+    private async Task CreateContactInputs()
+    {
+        AnsiConsole.MarkupLine($"You've picked Create a Contact.");
+        // any way for me to make a form here? nope, but I can use lots of prompts
+
+        string contactName = AnsiConsole.Prompt(
+                                new TextPrompt<string>("What's the contact's name?"));
+
+        ContactGroup contactGroup = AnsiConsole.Prompt(
+                                        new TextPrompt<ContactGroup>($"What group does {contactName} belong to?")
+                                        //.AddChoices<>);
 
         
     }
