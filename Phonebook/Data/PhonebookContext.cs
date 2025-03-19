@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PhoneBook.Models;
+﻿using PhoneBook.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Configuration;
 
 namespace PhoneBook.Data;

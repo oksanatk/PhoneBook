@@ -1,6 +1,7 @@
 ﻿using PhoneBook.Data;
 using PhoneBook.Models;
 using Spectre.Console;
+using PhoneBook.Utilities;
 
 namespace PhoneBook.Views;
 
@@ -55,28 +56,56 @@ class PhonebookView
                     AnsiConsole.MarkupLine("[maroon]There seems to have been some type of issue. Press Enter to try again.[/]");
                     Console.ReadLine();
                     break;
-            }            
-            
-            AnsiConsole.MarkupLine($"[yellow]You picked {mainMenuChoice}[/]");
+            }
+            Console.WriteLine($"You've picked {mainMenuChoice}. Press the Enter key to continue.");
             Console.ReadLine();
         } while (mainMenuChoice != "Quit");
     }
 
     public async Task DisplayAllContacts()
     {
-        string contactChoice = "";
+        Contact contactChoice;
         List<Contact> allContacts = await _repository.ReadAllContactsAsync();
-        List<string> menuSelection = allContacts.Select(c => c.Name).ToList();
-        menuSelection.Add("Go Back");
+        allContacts.Add(new Contact { Name = "Go Back" });
+
         do
         {
-            contactChoice = AnsiConsole.Prompt(
-                                    new SelectionPrompt<string>()
-                                    .Title("Choose the contact to view.")
-                                    .AddChoices(menuSelection)
-                                    );
-        } while (contactChoice != "Go Back"); 
+            Console.Clear();
+            contactChoice = AnsiConsole.Prompt<Contact>(
+                                    new SelectionPrompt<Contact>()
+                                        .Title($"Choose the contact to view.")
+                                        .AddChoices(allContacts)
+                                        .UseConverter<Contact>(c => c.Name)
+                                        );
+            if (contactChoice.Name != "Go Back")
+            {
+                DisplayContactDetails(contactChoice);
+            }
+        } while (contactChoice.Name != "Go Back"); 
     }    
+
+    public static void DisplayContactDetails(Contact contact)
+    {
+        Grid grid = new Grid();
+        grid.AddColumn();
+        grid.AddColumn();
+
+        grid.AddRow("[bold yellow]Name:[/]", contact.Name);
+        grid.AddRow("[bold yellow]Group:[/]", contact.Group.ToString());
+        grid.AddRow("[bold yellow]Email:[/]", contact.Email);
+        grid.AddRow("[bold yellow]Phone:[/]", contact.Phone);
+
+        AnsiConsole.Write(new Panel(grid)
+        {
+            Header = new PanelHeader("[bold yellow]Contact Details[/]"),
+            Border = BoxBorder.Rounded,
+            Padding = new Padding(1)
+        });
+
+        AnsiConsole.MarkupLine("Press the [yellow]Enter[/] key to continue.");
+        Console.ReadLine();
+    }
+
     private async Task CreateContactInputs()
     {
         AnsiConsole.MarkupLine($"You've picked Create a Contact.");
@@ -85,10 +114,28 @@ class PhonebookView
         string contactName = AnsiConsole.Prompt(
                                 new TextPrompt<string>("What's the contact's name?"));
 
-        ContactGroup contactGroup = AnsiConsole.Prompt(
-                                        new TextPrompt<ContactGroup>($"What group does {contactName} belong to?")
-                                        //.AddChoices<>);
+        string contactGroup = AnsiConsole.Prompt(
+                                        new SelectionPrompt<string>()
+                                        .Title($"What group does [yellow]{contactName}[/] belong to?")
+                                        .AddChoices(new string[] {"Work", "Friends","Volunteer", "Hobby", "Sport","Faith"}));
 
+        string contactEmail = AnsiConsole.Prompt(
+                                new TextPrompt<string>($"What's [yellow]{contactName}'s[/] email (example@somewhere.com)?")
+                                .Validate(e => Validator.ValidateEmail(e) ? ValidationResult.Success() : ValidationResult.Error()));
+
+        string contactPhone = AnsiConsole.Prompt(
+                                new TextPrompt<string>($"What's [yellow]{contactName}'s[/] phone number (1234567890)?")
+                                .Validate(e => Validator.ValidatePhone(e) ? ValidationResult.Success() : ValidationResult.Error()));
+
+        contactPhone = Formatter.FormatPhoneNumber(contactPhone);
+        await _repository.CreateNewContactAsync(
+                            new Contact
+                            {
+                                Name = contactName,
+                                Group = Contact.GetGroupFromString(contactGroup),
+                                Email = contactEmail,
+                                Phone = contactPhone
+                            });        
         
     }
 }

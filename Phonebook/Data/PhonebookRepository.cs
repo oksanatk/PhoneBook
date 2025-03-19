@@ -1,4 +1,5 @@
-﻿using PhoneBook.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using PhoneBook.Models;
 
 namespace PhoneBook.Data;
 
@@ -13,7 +14,19 @@ class PhonebookRepository
 
     public async Task<List<Contact>> ReadAllContactsAsync()
     {
+        List<Contact> allContacts = await _phonebookContext.Contacts.ToListAsync<Contact>();
+        return allContacts;
+    }
 
-        return new List<Contact>();
+    public async Task<Contact?> ReadContactDetails(int contactId)
+    {
+        Contact? contact = await _phonebookContext.Contacts.SingleOrDefaultAsync(c => c.Id == contactId);
+        return contact;
+    }
+
+    internal async Task CreateNewContactAsync(Contact contact)
+    {
+        await _phonebookContext.Contacts.AddAsync(contact);
+        await _phonebookContext.SaveChangesAsync();
     }
 }
