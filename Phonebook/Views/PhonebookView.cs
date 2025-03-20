@@ -37,14 +37,16 @@ class PhonebookView
             switch (mainMenuChoice)
             {
                 case "View Contacts":
-                    await DisplayAllContacts();
+                    await SelectFromAllContacts(MenuMode.View);
                     break;
                 case "Create Contact":
-                    await CreateContactInputs();
+                    await GetCreateContactInputs();
                     break;
-                case "Edit Contacts":
+                case "Edit Contact":
+                    await SelectFromAllContacts(MenuMode.Update);
                     break;
                 case "Delete Contact":
+                    await SelectFromAllContacts(MenuMode.Delete);
                     break;
                 case "Send Email":
                     break;
@@ -57,32 +59,51 @@ class PhonebookView
                     Console.ReadLine();
                     break;
             }
-            Console.WriteLine($"You've picked {mainMenuChoice}. Press the Enter key to continue.");
-            Console.ReadLine();
         } while (mainMenuChoice != "Quit");
     }
 
-    public async Task DisplayAllContacts()
+    public async Task SelectFromAllContacts(MenuMode menuMode)
     {
         Contact contactChoice;
-        List<Contact> allContacts = await _repository.ReadAllContactsAsync();
-        allContacts.Add(new Contact { Name = "Go Back" });
-
         do
         {
+            List<Contact> allContacts = await _repository.ReadAllContactsAsync();
+            allContacts.Add(new Contact { Name = "Go Back" });
+
             Console.Clear();
             contactChoice = AnsiConsole.Prompt<Contact>(
                                     new SelectionPrompt<Contact>()
-                                        .Title($"Choose the contact to view.")
+                                        .Title($"Choose the contact to {menuMode.ToString().ToLower()}")
                                         .AddChoices(allContacts)
                                         .UseConverter<Contact>(c => c.Name)
                                         );
+
             if (contactChoice.Name != "Go Back")
             {
-                DisplayContactDetails(contactChoice);
+                switch (menuMode)
+                {
+                    case MenuMode.Create:
+                        await GetCreateContactInputs();
+                        break;
+                    case MenuMode.Update:
+                        await GetUpdateContactInputs(contactChoice);
+                        break;
+                    case MenuMode.Delete:
+                        await DeleteContact(contactChoice);
+                        break;
+                    case MenuMode.SendEmail:
+                        // TODO
+                        break;
+                    case MenuMode.SendSMS:
+                        // TODO 
+                        break;
+                    default:
+                        DisplayContactDetails(contactChoice);
+                        break;
+                }
             }
         } while (contactChoice.Name != "Go Back"); 
-    }    
+    }
 
     public static void DisplayContactDetails(Contact contact)
     {
@@ -106,10 +127,9 @@ class PhonebookView
         Console.ReadLine();
     }
 
-    private async Task CreateContactInputs()
+    private async Task GetCreateContactInputs()
     {
         AnsiConsole.MarkupLine($"You've picked Create a Contact.");
-        // any way for me to make a form here? nope, but I can use lots of prompts
 
         string contactName = AnsiConsole.Prompt(
                                 new TextPrompt<string>("What's the contact's name?"));
@@ -128,6 +148,7 @@ class PhonebookView
                                 .Validate(e => Validator.ValidatePhone(e) ? ValidationResult.Success() : ValidationResult.Error()));
 
         contactPhone = Formatter.FormatPhoneNumber(contactPhone);
+
         await _repository.CreateNewContactAsync(
                             new Contact
                             {
@@ -135,7 +156,45 @@ class PhonebookView
                                 Group = Contact.GetGroupFromString(contactGroup),
                                 Email = contactEmail,
                                 Phone = contactPhone
-                            });        
-        
+                            }); 
+    }
+
+    private async Task GetUpdateContactInputs(Contact contact)
+    {
+        AnsiConsole.MarkupLine($"You've picked Update a Contact.");
+
+        string newName = AnsiConsole.Prompt(
+                                new TextPrompt<string>($"Please enter [yellow]{contact.Name}[/]'s new name:"));
+
+        string newGroup = AnsiConsole.Prompt(
+                                        new SelectionPrompt<string>()
+                                        .Title($"What group does [yellow]{newName}[/] belong to?")
+                                        .AddChoices(new string[] { "Work", "Friends", "Volunteer", "Hobby", "Sport", "Faith" }));
+
+        string newEmail = AnsiConsole.Prompt(
+                                new TextPrompt<string>($"What's [yellow]{newName}'s[/] email (example@somewhere.com)?")
+                                .Validate(e => Validator.ValidateEmail(e) ? ValidationResult.Success() : ValidationResult.Error()));
+
+        string newPhone = AnsiConsole.Prompt(
+                                new TextPrompt<string>($"What's [yellow]{newName}'s[/] phone number (1234567890)?")
+                                .Validate(e => Validator.ValidatePhone(e) ? ValidationResult.Success() : ValidationResult.Error()));
+
+        newPhone = Formatter.FormatPhoneNumber(newPhone);
+        await _repository.UpdateContact(
+            new Contact
+            {
+                Id = contact.Id,
+                Name = newName,
+                Group = Contact.GetGroupFromString(newGroup),
+                Email = newEmail,
+                Phone = newPhone
+            });
+    }
+
+    private async Task DeleteContact(Contact contactChoice)
+    {
+        await _repository.DeleteContactAsync(contactChoice.Id);
+        AnsiConsole.MarkupLine($"You've deleted contact [bold yellow]{contactChoice.Name}[/] with the ID [bold yellow]{contactChoice.Id}[/]. \nPress the [yellow]Enter[/] key to continue.");
+        Console.ReadLine();
     }
 }
