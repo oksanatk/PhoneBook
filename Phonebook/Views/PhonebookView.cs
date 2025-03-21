@@ -2,16 +2,19 @@
 using PhoneBook.Models;
 using Spectre.Console;
 using PhoneBook.Utilities;
+using PhoneBook.Services;
 
 namespace PhoneBook.Views;
 
 class PhonebookView
 {
     private readonly PhonebookRepository _repository;
+    private readonly EmailService _emailService;
 
-    public PhonebookView(PhonebookRepository repository)
+    public PhonebookView(PhonebookRepository repository, EmailService emailService)
     {
         _repository = repository;
+        _emailService = emailService;
     }
 
     public async Task ShowMainMenu()
@@ -49,6 +52,7 @@ class PhonebookView
                     await SelectFromAllContacts(MenuMode.Delete);
                     break;
                 case "Send Email":
+                    await SelectFromAllContacts(MenuMode.SendEmail);
                     break;
                 case "Send SMS":
                     break;
@@ -92,7 +96,7 @@ class PhonebookView
                         await DeleteContact(contactChoice);
                         break;
                     case MenuMode.SendEmail:
-                        // TODO
+                        GetEmailInputs(contactChoice);
                         break;
                     case MenuMode.SendSMS:
                         // TODO 
@@ -102,7 +106,7 @@ class PhonebookView
                         break;
                 }
             }
-        } while (contactChoice.Name != "Go Back"); 
+        } while (contactChoice.Name != "Go Back");
     }
 
     public static void DisplayContactDetails(Contact contact)
@@ -137,7 +141,7 @@ class PhonebookView
         string contactGroup = AnsiConsole.Prompt(
                                         new SelectionPrompt<string>()
                                         .Title($"What group does [yellow]{contactName}[/] belong to?")
-                                        .AddChoices(new string[] {"Work", "Friends","Volunteer", "Hobby", "Sport","Faith"}));
+                                        .AddChoices(new string[] { "Work", "Friends", "Volunteer", "Hobby", "Sport", "Faith" }));
 
         string contactEmail = AnsiConsole.Prompt(
                                 new TextPrompt<string>($"What's [yellow]{contactName}'s[/] email (example@somewhere.com)?")
@@ -156,7 +160,7 @@ class PhonebookView
                                 Group = Contact.GetGroupFromString(contactGroup),
                                 Email = contactEmail,
                                 Phone = contactPhone
-                            }); 
+                            });
     }
 
     private async Task GetUpdateContactInputs(Contact contact)
@@ -195,6 +199,27 @@ class PhonebookView
     {
         await _repository.DeleteContactAsync(contactChoice.Id);
         AnsiConsole.MarkupLine($"You've deleted contact [bold yellow]{contactChoice.Name}[/] with the ID [bold yellow]{contactChoice.Id}[/]. \nPress the [yellow]Enter[/] key to continue.");
+        Console.ReadLine();
+    }
+   
+    private void GetEmailInputs(Contact contactChoice)
+    {
+        string subject = AnsiConsole.Prompt<string>(
+                            new TextPrompt<string>("What is the email's subject?")
+                            .Validate<string>(message => 
+                                message.Length < 990 
+                                ? ValidationResult.Success() 
+                                : ValidationResult.Error("[maroon]Subject is too long.[/]")));
+
+        string body = AnsiConsole.Prompt<string>(
+                            new TextPrompt<string>("What is the email's body (message)?")
+                            .Validate(message =>
+                                message.Length < 15000
+                                ? ValidationResult.Success()
+                                : ValidationResult.Error("[maroon]Your message is too long.[/]")));
+
+        AnsiConsole.MarkupLine(_emailService.SendEmail(contactChoice.Email, subject, body));
+        AnsiConsole.MarkupLine($"\nPress the [bold yellow]Enter[/] key to continue.");
         Console.ReadLine();
     }
 }
