@@ -6,6 +6,5 @@ public enum MenuMode
     View,
     Update,
     Delete,
-    SendEmail,
-    SendSMS
+    SendEmail
 }

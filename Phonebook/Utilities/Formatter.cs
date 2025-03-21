@@ -13,4 +13,13 @@ public static class Formatter
         validPhone = validPhone.StartsWith(' ') ? ("+1" + validPhone) : ("+" + validPhone); //if no area code, assume +1
         return validPhone;
     }
+
+    public static string SanitizeFormattedPhoneNumber(string contactPhone)
+    {
+        contactPhone = contactPhone.Trim();
+        contactPhone = Regex.Replace(contactPhone, @"[()\s\-_#+]", "");
+        contactPhone = Regex.Replace(contactPhone, @"(\d{1,3})*(\d{3})(\d{3})(\d{4})", @"$2$3$4");
+
+        return contactPhone;
+    }
 }

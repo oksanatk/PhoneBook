@@ -33,7 +33,6 @@ class PhonebookView
                             "Edit Contact",
                             "Delete Contact",
                             "Send Email",
-                            "Send SMS",
                             "Quit"})
                             .MoreChoicesText("[grey]Move up and down to view more options[/]"));
 
@@ -53,8 +52,6 @@ class PhonebookView
                     break;
                 case "Send Email":
                     await SelectFromAllContacts(MenuMode.SendEmail);
-                    break;
-                case "Send SMS":
                     break;
                 case "Quit":
                     break;
@@ -97,9 +94,6 @@ class PhonebookView
                         break;
                     case MenuMode.SendEmail:
                         GetEmailInputs(contactChoice);
-                        break;
-                    case MenuMode.SendSMS:
-                        // TODO 
                         break;
                     default:
                         DisplayContactDetails(contactChoice);
@@ -157,7 +151,7 @@ class PhonebookView
                             new Contact
                             {
                                 Name = contactName,
-                                Group = Contact.GetGroupFromString(contactGroup),
+                                Group = ContactGroupExtension.GetGroupFromString(contactGroup),
                                 Email = contactEmail,
                                 Phone = contactPhone
                             });
@@ -189,7 +183,7 @@ class PhonebookView
             {
                 Id = contact.Id,
                 Name = newName,
-                Group = Contact.GetGroupFromString(newGroup),
+                Group = ContactGroupExtension.GetGroupFromString(newGroup),
                 Email = newEmail,
                 Phone = newPhone
             });
@@ -207,7 +201,7 @@ class PhonebookView
         string subject = AnsiConsole.Prompt<string>(
                             new TextPrompt<string>("What is the email's subject?")
                             .Validate<string>(message => 
-                                message.Length < 990 
+                                message.Length < 900 
                                 ? ValidationResult.Success() 
                                 : ValidationResult.Error("[maroon]Subject is too long.[/]")));
 
@@ -219,6 +213,7 @@ class PhonebookView
                                 : ValidationResult.Error("[maroon]Your message is too long.[/]")));
 
         AnsiConsole.MarkupLine(_emailService.SendEmail(contactChoice.Email, subject, body));
+
         AnsiConsole.MarkupLine($"\nPress the [bold yellow]Enter[/] key to continue.");
         Console.ReadLine();
     }
